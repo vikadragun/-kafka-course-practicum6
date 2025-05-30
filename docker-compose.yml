@@ -1,0 +1,152 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.2
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SERVER_ID: 1
+      ZOO_AUTH_PROVIDER: "org.apache.zookeeper.server.auth.SASLAuthenticationProvider"
+      ZOO_JAAS_LOGIN_REQUIRED: "true"
+      ZOO_4LW_COMMANDS_WHITELIST: "srvr,ruok,stat"
+    volumes:
+      - ./zookeeper-data:/var/lib/zookeeper/data
+      - ./zookeeper-log:/var/lib/zookeeper/log
+      - ./kafka-jaas/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+    extra_hosts:
+      - "kafka-1:172.18.0.1"
+      - "kafka-2:172.18.0.1"
+      - "kafka-3:172.18.0.1"
+
+  kafka-1:
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: kafka-1
+    container_name: kafka-1
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,SSL:SSL"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka-1:29092,SSL://kafka-1:9093"
+      KAFKA_LISTENERS: "INTERNAL://0.0.0.0:29092,SSL://0.0.0.0:9093"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_SSL_KEYSTORE_FILENAME: "kafka.kafka-1.keystore.pkcs12"
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: "kafka-1_keystore_creds"
+      KAFKA_SSL_KEY_CREDENTIALS: "kafka-1_sslkey_creds"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "kafka.kafka-1.truststore.jks"
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "kafka-1_truststore_creds"
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: "User:admin"
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+      KAFKA_ZOOKEEPER_SASL_CLIENT: "true"
+    volumes:
+      - ./kafka-1-data:/var/lib/kafka/data
+      - ./kafka-1-creds:/etc/kafka/secrets
+      - ./kafka-jaas/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+    extra_hosts:
+      - "zookeeper:172.18.0.1"
+
+  kafka-2:
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: kafka-2
+    container_name: kafka-2
+    depends_on:
+      - zookeeper
+      - kafka-1
+    ports:
+      - "9094:9094"
+      - "29093:29093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,SSL:SSL"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka-2:29093,SSL://kafka-2:9094"
+      KAFKA_LISTENERS: "INTERNAL://0.0.0.0:29093,SSL://0.0.0.0:9094"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_SSL_KEYSTORE_FILENAME: "kafka.kafka-2.keystore.pkcs12"
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: "kafka-2_keystore_creds"
+      KAFKA_SSL_KEY_CREDENTIALS: "kafka-2_sslkey_creds"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "kafka.kafka-2.truststore.jks"
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "kafka-2_truststore_creds"
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: "User:admin"
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+      KAFKA_ZOOKEEPER_SASL_CLIENT: "true"
+    volumes:
+      - ./kafka-2-data:/var/lib/kafka/data
+      - ./kafka-2-creds:/etc/kafka/secrets
+      - ./kafka-jaas/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+    extra_hosts:
+      - "zookeeper:172.18.0.1"
+
+  kafka-3:
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: kafka-3
+    container_name: kafka-3
+    depends_on:
+      - zookeeper
+      - kafka-1
+      - kafka-2
+    ports:
+      - "9095:9095"
+      - "29094:29094"
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,SSL:SSL"
+      KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka-3:29094,SSL://kafka-3:9095"
+      KAFKA_LISTENERS: "INTERNAL://0.0.0.0:29094,SSL://0.0.0.0:9095"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "INTERNAL"
+      KAFKA_SSL_KEYSTORE_FILENAME: "kafka.kafka-3.keystore.pkcs12"
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: "kafka-3_keystore_creds"
+      KAFKA_SSL_KEY_CREDENTIALS: "kafka-3_sslkey_creds"
+      KAFKA_SSL_TRUSTSTORE_FILENAME: "kafka.kafka-3.truststore.jks"
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: "kafka-3_truststore_creds"
+      KAFKA_SSL_CLIENT_AUTH: "required"
+      KAFKA_AUTHORIZER_CLASS_NAME: "kafka.security.authorizer.AclAuthorizer"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: "User:admin"
+      KAFKA_OPTS: "-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf"
+      KAFKA_ZOOKEEPER_SASL_CLIENT: "true"
+    volumes:
+      - ./kafka-3-data:/var/lib/kafka/data
+      - ./kafka-3-creds:/etc/kafka/secrets
+      - ./kafka-jaas/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf
+    extra_hosts:
+      - "zookeeper:172.18.0.1"
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka-1:9093,kafka-2:9094,kafka-3:9095"
+      KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181"
+      KAFKA_CLUSTERS_0_PROPERTIES_SECURITY_PROTOCOL: "SSL"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_LOCATION: "/truststore.jks"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_TRUSTSTORE_PASSWORD: "your-password"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_LOCATION: "/keystore.p12"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEYSTORE_PASSWORD: "your-password"
+      KAFKA_CLUSTERS_0_PROPERTIES_SSL_KEY_PASSWORD: "your-password"
+    volumes:
+      - ./kafka-1-creds/kafka.kafka-1.truststore.jks:/truststore.jks
+      - ./kafka-1-creds/kafka.kafka-1.keystore.pkcs12:/keystore.p12
